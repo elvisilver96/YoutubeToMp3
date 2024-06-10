@@ -1,13 +1,12 @@
 from flask import Flask, request, send_file, jsonify
 from pytube import YouTube
 from pydub import AudioSegment
-import io
+import os
 import re
 import logging
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from urllib.parse import urlparse, parse_qs
-import os
 
 app = Flask(__name__)
 
@@ -53,26 +52,30 @@ def download():
         stream = video.streams.filter(only_audio=True).first()
 
         # Create a temporary file to save the audio
-        temp_file = 'temp_audio.mp4'
+        temp_file_mp4 = 'temp_audio.mp4'
+        temp_file_mp3 = 'temp_audio.mp3'
 
         # Download the stream to a temporary file
-        stream.download(filename=temp_file)
+        stream.download(filename=temp_file_mp4)
 
         # Convert the audio stream to MP3
-        audio = AudioSegment.from_file(temp_file, format="mp4")
-        mp3_buffer = io.BytesIO()
-        audio.export(mp3_buffer, format="mp3")
-        mp3_buffer.seek(0)
+        audio = AudioSegment.from_file(temp_file_mp4, format="mp4")
+        audio.export(temp_file_mp3, format="mp3")
 
-        # Clean up the temporary file
-        os.remove(temp_file)
-
-        return send_file(mp3_buffer, as_attachment=True, download_name="download.mp3", mimetype="audio/mpeg")
+        # Send the MP3 file
+        return send_file(temp_file_mp3, as_attachment=True, download_name="download.mp3", mimetype="audio/mpeg")
 
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         logging.error(traceback.format_exc())
         return jsonify({"error": "An internal error occurred. Please try again later."}), 500
+
+    finally:
+        # Clean up the temporary files
+        if os.path.exists(temp_file_mp4):
+            os.remove(temp_file_mp4)
+        if os.path.exists(temp_file_mp3):
+            os.remove(temp_file_mp3)
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
