@@ -7,6 +7,7 @@ import logging
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from urllib.parse import urlparse, parse_qs
+import os
 
 app = Flask(__name__)
 
@@ -51,21 +52,26 @@ def download():
         video = YouTube(sanitized_url)
         stream = video.streams.filter(only_audio=True).first()
 
-        # Download the stream to an in-memory bytes buffer
-        mp4_buffer = io.BytesIO()
-        stream.stream_to_buffer(mp4_buffer)
-        mp4_buffer.seek(0)
+        # Create a temporary file to save the audio
+        temp_file = 'temp_audio.mp4'
 
-        # Convert the audio stream to MP3 in memory
-        audio = AudioSegment.from_file(mp4_buffer, format="mp4")
+        # Download the stream to a temporary file
+        stream.download(filename=temp_file)
+
+        # Convert the audio stream to MP3
+        audio = AudioSegment.from_file(temp_file, format="mp4")
         mp3_buffer = io.BytesIO()
         audio.export(mp3_buffer, format="mp3")
         mp3_buffer.seek(0)
+
+        # Clean up the temporary file
+        os.remove(temp_file)
 
         return send_file(mp3_buffer, as_attachment=True, download_name="download.mp3", mimetype="audio/mpeg")
 
     except Exception as e:
         logging.error(f"An error occurred: {e}")
+        logging.error(traceback.format_exc())
         return jsonify({"error": "An internal error occurred. Please try again later."}), 500
 
 @app.errorhandler(429)
