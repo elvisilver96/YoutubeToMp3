@@ -1,5 +1,4 @@
 absl-py==1.2.0
-ad3 @ file:///C:/Users/elvis/Downloads/ad3-2.2.1-cp310-cp310-win_amd64.whl#sha256=2edc385a5ac39557e54fa8df87fc3a58b876a0dfafb247ad7c7cfe8bc3f6a76e
 affine==2.4.0
 aiofiles==23.2.1
 aiohttp==3.8.4
